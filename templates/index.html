@@ -4,81 +4,541 @@
 <meta charset="utf-8">
 <title>Team Directory</title>
 <style>
-  body { font-family: Arial, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; color: #222; }
-  h1 { margin-bottom: 0.25rem; }
-  p.sub { color: #666; margin-top: 0; }
-  fieldset { margin-bottom: 1.5rem; border: 1px solid #ccc; border-radius: 6px; }
-  label { display: block; margin-top: 0.6rem; font-size: 0.9rem; }
-  input { width: 100%; padding: 0.4rem; box-sizing: border-box; margin-top: 0.2rem; }
-  .row { margin-top: 1rem; }
-  button { padding: 0.5rem 1rem; cursor: pointer; }
-  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-  th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #ddd; }
-  th { background: #f5f5f5; }
-  .actions button { margin-right: 0.3rem; font-size: 0.8rem; padding: 0.3rem 0.6rem; }
-  .msg { padding: 0.6rem; border-radius: 4px; margin: 0.75rem 0; display: none; }
-  .msg.error { background: #fdecea; color: #611a15; display: block; }
-  .msg.success { background: #e8f5e9; color: #1b5e20; display: block; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+    color: #1f2430;
+    background: #fff;
+  }
+
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+  }
+  .header-row h1 { margin: 0; font-size: 1.6rem; }
+  .header-row p { margin: 0.15rem 0 0; color: #6b7280; font-size: 0.9rem; }
+  .add-btn {
+    background: #6d5bd0;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .add-btn:hover { background: #5b4bb8; }
+
+  .search-row { margin-bottom: 1.25rem; }
+  .search-row input {
+    width: 100%;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid #e0e2e7;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+  .search-row input:focus { outline: none; border-color: #6d5bd0; }
+
+  /* ---- toast (bottom-right, simple) ---- */
+  .toast-container {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 200;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.6rem;
+    width: 320px;
+    max-width: calc(100vw - 2.5rem);
+  }
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.hide { opacity: 0; transform: translateY(10px); }
+  .toast.success { background: #e8f5e9; color: #1b5e20; }
+  .toast.error { background: #fdecea; color: #a13030; }
+  .toast-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .toast.success .toast-icon { background: #22a55e; }
+  .toast.error .toast-icon { background: #e0453e; }
+  .toast-text { flex: 1; word-break: break-word; }
+  .toast-close {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    opacity: 0.6;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .toast-close:hover { opacity: 1; }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9aa0ab;
+    font-size: 0.95rem;
+    display: none;
+  }
+
+  /* ---- table ---- */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    padding: 0.7rem 0.6rem;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+    border-bottom: 1px solid #e8e9ed;
+  }
+  tbody td {
+    padding: 0.85rem 0.6rem;
+    border-bottom: 1px solid #f1f2f5;
+    font-size: 0.9rem;
+    vertical-align: middle;
+  }
+  tbody tr:hover { background: #fafafc; }
+
+  .name-cell { display: flex; align-items: center; gap: 0.7rem; }
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ece9fb, #d9d3f7);
+    color: #6d5bd0;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .emp-name { font-weight: 600; }
+  .emp-email { color: #6b7280; font-size: 0.8rem; }
+
+  .dept-tag {
+    display: inline-block;
+    background: #eef0f4;
+    color: #4b5563;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+  }
+
+  .row-menu-cell { position: relative; text-align: right; width: 40px; }
+  .row-menu-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #6b7280;
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    line-height: 1;
+  }
+  .row-menu-btn:hover { background: #f3f4f6; }
+  .row-menu {
+    display: none;
+    position: absolute;
+    right: 0.5rem;
+    top: 2.1rem;
+    background: #fff;
+    border: 1px solid #e8e9ed;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    min-width: 120px;
+    z-index: 20;
+    overflow: hidden;
+  }
+  .row-menu.open { display: block; }
+  .row-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.55rem 0.9rem;
+    border: none;
+    background: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: #1f2430;
+  }
+  .row-menu button:hover { background: #f3f4f6; }
+  .row-menu button.danger { color: #e0453e; }
+
+  /* ---- pagination footer ---- */
+  .pagination-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+    color: #4b5563;
+  }
+  .pagination-row select {
+    border: 1px solid #e0e2e7;
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
+  }
+  .pagination-row .page-nav { display: flex; align-items: center; gap: 0.75rem; }
+  .pagination-row button {
+    border: none;
+    background: #f3f4f6;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #1f2430;
+  }
+  .pagination-row button:disabled { color: #c3c7ce; cursor: not-allowed; }
+  .pagination-row button:not(:disabled):hover { background: #e5e7eb; }
+
+  /* ---- side panel ---- */
+  .panel-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 17, 21, 0.35);
+    z-index: 10;
+  }
+  .panel-overlay.open { display: block; }
+  .side-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    box-shadow: -12px 0 40px rgba(0,0,0,0.15);
+    z-index: 11;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-overlay.open .side-panel { transform: translateX(0); }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.5rem 1.6rem 1rem;
+    border-bottom: 1px solid #eee;
+  }
+  .panel-header h2 { margin: 0; font-size: 1.15rem; }
+  .panel-header p { margin: 0.15rem 0 0; color: #6b7280; font-size: 0.85rem; }
+  .panel-close {
+    border: none;
+    background: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #6b7280;
+    line-height: 1;
+  }
+  .panel-body { padding: 1.2rem 1.6rem; overflow-y: auto; flex: 1; }
+  .panel-body label { display: block; margin-top: 0.9rem; font-size: 0.85rem; color: #374151; font-weight: 500; }
+  .panel-body input {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.3rem;
+    border: 1px solid #e0e2e7;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .panel-body input:focus { outline: none; border-color: #6d5bd0; }
+  .panel-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 1rem 1.6rem 1.5rem;
+    border-top: 1px solid #eee;
+  }
+  .panel-actions button {
+    padding: 0.6rem 1.15rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .btn-primary { background: #6d5bd0; color: #fff; }
+  .btn-primary:hover { background: #5b4bb8; }
+  .btn-secondary { background: #f3f4f6; color: #374151; }
+  .btn-secondary:hover { background: #e5e7eb; }
 </style>
 </head>
 <body>
 
-<h1>Team Directory</h1>
-
-
-<div id="message" class="msg"></div>
-</br>
-
-<fieldset>
-  <legend id="form-title">Add Employee</legend>
-  <input type="hidden" id="employee_id">
-  <label>Name<input id="name" type="text"></label>
-  <label>Email<input id="email" type="email"></label>
-  <label>Department<input id="department" type="text"></label>
-  <label>Role<input id="role" type="text"></label>
-  <div class="row">
-    <button id="submit-btn" onclick="submitForm()">Create</button>
-    <button id="cancel-btn" onclick="resetForm()" style="display:none;">Cancel edit</button>
+<div class="header-row">
+  <div>
+    <h1>Team Directory</h1>
+    <p>Manage your team members</p>
   </div>
-</fieldset>
+  <button class="add-btn" onclick="openAddPanel()">+ Add Employee</button>
+</div>
 
-<table>
+<div id="toast-container" class="toast-container"></div>
+
+<div class="search-row">
+  <input id="search-q" type="text" placeholder="Search employees..." oninput="onSearchInput()">
+</div>
+
+<div id="empty-state" class="empty-state">No employees found</div>
+
+<table id="employee-table" style="display:none;">
   <thead>
-    <tr><th>ID</th><th>Name</th><th>Email</th><th>Department</th><th>Role</th><th>Actions</th></tr>
+    <tr>
+      <th>Employee</th>
+      <th>Department</th>
+      <th>Role</th>
+      <th></th>
+    </tr>
   </thead>
   <tbody id="employee-rows"></tbody>
 </table>
 
+<div class="pagination-row" id="pagination-row" style="display:none;">
+  <div>
+    Rows per page:
+    <select id="page-size" onchange="onPageSizeChange()">
+      <option value="10">10</option>
+      <option value="20" selected>20</option>
+      <option value="50">50</option>
+    </select>
+  </div>
+  <div id="pagination-count"></div>
+  <div class="page-nav">
+    <button id="prev-page" onclick="goToPage(currentPage - 1)">&#8249;</button>
+    <button id="next-page" onclick="goToPage(currentPage + 1)">&#8250;</button>
+  </div>
+</div>
+
+<div class="panel-overlay" id="panel-overlay">
+  <div class="side-panel">
+    <div class="panel-header">
+      <div>
+        <h2 id="panel-title">Add Employee</h2>
+        <p id="panel-sub">Enter employee details</p>
+      </div>
+      <button class="panel-close" onclick="closePanel()">&times;</button>
+    </div>
+
+    <div class="panel-body">
+      <input type="hidden" id="employee_id">
+      <label>Name<input id="name" type="text"></label>
+      <label>Email<input id="email" type="email"></label>
+      <label>Department<input id="department" type="text"></label>
+      <label>Role<input id="role" type="text"></label>
+    </div>
+
+    <div class="panel-actions">
+      <button class="btn-secondary" onclick="closePanel()">Cancel</button>
+      <button class="btn-primary" id="submit-btn" onclick="submitForm()">Create</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// Demo-only: a real app would authenticate the user and never
+// embed a shared write-access key in client-side JS like this.
 const API_KEY = "dev-secret-key";
 
+let allEmployees = [];
+let currentPage = 1;
+let pageSize = 20;
+let openMenuId = null;
+
 function showMessage(text, isError) {
-  const el = document.getElementById("message");
-  el.textContent = text;
-  el.className = "msg " + (isError ? "error" : "success");
-  setTimeout(() => { el.className = "msg"; }, 4000);
+  const type = isError ? "error" : "success";
+  const icon = isError ? "!" : "&#10003;";
+  const duration = 3500;
+
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <div class="toast-icon">${icon}</div>
+    <div class="toast-text">${text}</div>
+    <button class="toast-close" aria-label="Dismiss">&times;</button>
+  `;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add("show"));
+
+  const dismiss = () => {
+    toast.classList.add("hide");
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 200);
+  };
+
+  const timer = setTimeout(dismiss, duration);
+  toast.querySelector(".toast-close").onclick = () => {
+    clearTimeout(timer);
+    dismiss();
+  };
+}
+
+function initials(name) {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0] ? parts[0][0] : "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
+
+function onSearchInput() {
+  currentPage = 1;
+  loadEmployees();
 }
 
 async function loadEmployees() {
-  const res = await fetch("/employees");
-  const employees = await res.json();
+  const q = document.getElementById("search-q").value.trim();
+  const url = q ? `/employees/search?q=${encodeURIComponent(q)}` : "/employees";
+
+  const res = await fetch(url);
+  allEmployees = await res.json();
+  render();
+}
+
+function render() {
+  const table = document.getElementById("employee-table");
+  const emptyState = document.getElementById("empty-state");
+  const paginationRow = document.getElementById("pagination-row");
+
+  if (allEmployees.length === 0) {
+    table.style.display = "none";
+    paginationRow.style.display = "none";
+    emptyState.style.display = "block";
+    return;
+  }
+  emptyState.style.display = "none";
+  table.style.display = "table";
+  paginationRow.style.display = "flex";
+
+  const totalPages = Math.max(1, Math.ceil(allEmployees.length / pageSize));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const start = (currentPage - 1) * pageSize;
+  const pageItems = allEmployees.slice(start, start + pageSize);
+
+  renderRows(pageItems);
+  renderPagination(start, pageItems.length, totalPages);
+}
+
+function renderRows(employees) {
   const tbody = document.getElementById("employee-rows");
   tbody.innerHTML = "";
   employees.forEach(emp => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${emp.employee_id}</td>
-      <td>${emp.name}</td>
-      <td>${emp.email}</td>
-      <td>${emp.department}</td>
+      <td>
+        <div class="name-cell">
+          <div class="avatar">${initials(emp.name)}</div>
+          <div>
+            <div class="emp-name">${emp.name}</div>
+            <div class="emp-email">${emp.email}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="dept-tag">${emp.department}</span></td>
       <td>${emp.role}</td>
-      <td class="actions">
-        <button onclick='editEmployee(${JSON.stringify(emp)})'>Edit</button>
-        <button onclick="deleteEmployee('${emp.employee_id}')">Delete</button>
+      <td class="row-menu-cell">
+        <button class="row-menu-btn" onclick="toggleMenu(event, '${emp.employee_id}')">&#8942;</button>
+        <div class="row-menu" id="menu-${emp.employee_id}">
+          <button onclick='onEditClick(${JSON.stringify(emp)})'>Edit</button>
+          <button class="danger" onclick="onDeleteClick('${emp.employee_id}')">Delete</button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+function renderPagination(start, shownCount, totalPages) {
+  const countEl = document.getElementById("pagination-count");
+  const total = allEmployees.length;
+  const from = total === 0 ? 0 : start + 1;
+  const to = start + shownCount;
+  countEl.textContent = `${from}-${to} of ${total}`;
+
+  document.getElementById("prev-page").disabled = currentPage <= 1;
+  document.getElementById("next-page").disabled = currentPage >= totalPages;
+}
+
+function goToPage(page) {
+  currentPage = page;
+  render();
+}
+
+function onPageSizeChange() {
+  pageSize = parseInt(document.getElementById("page-size").value, 10);
+  currentPage = 1;
+  render();
+}
+
+function toggleMenu(event, employeeId) {
+  event.stopPropagation();
+  const menu = document.getElementById(`menu-${employeeId}`);
+  const isOpen = menu.classList.contains("open");
+  closeAllMenus();
+  if (!isOpen) {
+    menu.classList.add("open");
+    openMenuId = employeeId;
+  }
+}
+
+function closeAllMenus() {
+  document.querySelectorAll(".row-menu.open").forEach(m => m.classList.remove("open"));
+  openMenuId = null;
+}
+
+document.addEventListener("click", closeAllMenus);
+
+function onEditClick(emp) {
+  closeAllMenus();
+  editEmployee(emp);
+}
+
+function onDeleteClick(employeeId) {
+  closeAllMenus();
+  deleteEmployee(employeeId);
+}
+
+function openAddPanel() {
+  resetForm();
+  document.getElementById("panel-title").textContent = "Add Employee";
+  document.getElementById("panel-sub").textContent = "Enter employee details";
+  document.getElementById("submit-btn").textContent = "Create";
+  document.getElementById("panel-overlay").classList.add("open");
 }
 
 function editEmployee(emp) {
@@ -87,9 +547,14 @@ function editEmployee(emp) {
   document.getElementById("email").value = emp.email;
   document.getElementById("department").value = emp.department;
   document.getElementById("role").value = emp.role;
-  document.getElementById("form-title").textContent = "Edit Employee";
+  document.getElementById("panel-title").textContent = "Edit Employee";
+  document.getElementById("panel-sub").textContent = "Update employee details";
   document.getElementById("submit-btn").textContent = "Update";
-  document.getElementById("cancel-btn").style.display = "inline-block";
+  document.getElementById("panel-overlay").classList.add("open");
+}
+
+function closePanel() {
+  document.getElementById("panel-overlay").classList.remove("open");
 }
 
 function resetForm() {
@@ -98,9 +563,6 @@ function resetForm() {
   document.getElementById("email").value = "";
   document.getElementById("department").value = "";
   document.getElementById("role").value = "";
-  document.getElementById("form-title").textContent = "Add Employee";
-  document.getElementById("submit-btn").textContent = "Create";
-  document.getElementById("cancel-btn").style.display = "none";
 }
 
 async function submitForm() {
@@ -124,12 +586,12 @@ async function submitForm() {
   const body = await res.json();
 
   if (!res.ok) {
-    showMessage(body.error || "Something went wrong", true);
+    showMessage(body.error || "Employee could not be added", true);
     return;
   }
 
-  showMessage(isUpdate ? "Employee updated" : "Employee created", false);
-  resetForm();
+  showMessage(isUpdate ? "Employee updated" : "Employee added", false);
+  closePanel();
   loadEmployees();
 }
 
@@ -144,7 +606,7 @@ async function deleteEmployee(employeeId) {
     loadEmployees();
   } else {
     const body = await res.json();
-    showMessage(body.error || "Delete failed", true);
+    showMessage(body.error || "Employee could not be deleted", true);
   }
 }
 
