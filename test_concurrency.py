@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-PORT = os.environ.get("PORT", "5000")
-URL = f"http://localhost:{PORT}/employees"
+BASE_URL = os.environ.get("BASE_URL", "https://team-directory.onrender.com")
+URL = f"{BASE_URL}/employees"
 API_KEY = os.environ.get("API_KEY", "dev-secret-key")
 
 # Unique per run so re-running the script never collides with employees

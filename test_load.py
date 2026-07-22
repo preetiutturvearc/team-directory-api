@@ -5,9 +5,12 @@ import uuid
 from datetime import datetime
 
 import httpx
+from dotenv import load_dotenv
 
-BASE_URL = "http://127.0.0.1:5000"
-API_KEY = "dev-secret-key"
+load_dotenv()
+
+BASE_URL = os.environ.get("BASE_URL", "https://team-directory.onrender.com")
+API_KEY = os.environ.get("API_KEY", "dev-secret-key")
 
 TOTAL_USERS = 200
 
