@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: team-directory-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app
+    envVars:
+      - key: API_KEY
+        sync: false
+      - key: DIRECTORY_DB_PATH
+        value: directory.json
+      - key: LOG_LEVEL
+        value: INFO

@@ -146,12 +146,36 @@ No duplicate ids in responses.
 Fast and clean — the lock only adds meaningful overhead when the artificial
 delay is deliberately widening the race window for this demo.
 
+## Deployment (Render)
+
+The app is served in production via `gunicorn` (added to `requirements.txt`)
+instead of Flask's development server. `render.yaml` defines the service:
+
+- **Runtime**: Python
+- **Build command**: `pip install -r requirements.txt`
+- **Start command**: `gunicorn main:app`
+- **Environment variables**: set `API_KEY` in Render's dashboard (marked
+  `sync: false` so it's never committed); `DIRECTORY_DB_PATH` and
+  `LOG_LEVEL` are set with sensible defaults; `PORT` is provided
+  automatically by Render.
+
+`gunicorn` only runs on Linux/Mac (it depends on the `fcntl` module, which
+doesn't exist on Windows) — this doesn't block local development, since
+`venv\Scripts\python.exe main.py` keeps working as before. Render's servers
+run Linux, so `gunicorn main:app` runs there without issue.
+
+**Known limitation**: Render's free-tier filesystem is ephemeral — anything
+written to `directory.json` is lost on a redeploy/restart. Persistence
+itself works correctly while the service is running; this is a platform
+constraint, not an application bug. Swapping to a real database (see below)
+would resolve it.
+
 ## What's next
 
-- Swap JSON persistence for SQLite (Stretch 8) while keeping
-  `EmployeeDirectory`'s public method signatures unchanged.
+- Swap JSON persistence for SQLite or a hosted database (Stretch 8) while
+  keeping `EmployeeDirectory`'s public method signatures unchanged — this
+  would also fix the Render free-tier persistence limitation above.
 - Add automated tests (`pytest`) covering each endpoint's success and error
   paths instead of relying on manual curl checks.
-- Add pagination to `GET /employees` once the directory grows large.
-- Replace the Flask development server with a production WSGI server
-  (e.g. gunicorn/waitress) before any real deployment.
+- Add server-side pagination to `GET /employees` once the directory grows
+  large (the current UI paginates client-side over the full list).
